@@ -1,12 +1,17 @@
 #include <Arduino.h>
 #include <OPT3101.h>
+#include "LIS3DHTR.h"
+#include <Wire.h>
+LIS3DHTR<TwoWire> LIS; //IIC
+#define WIRE Wire
 
 // *************** PINS ***************
 const int buttonPin = DD6; // the number of the pushbutton pin
 const int ledPin = 4;      // the number of the LED pin
 const int buzzPin = 5;
 const int lightPin = A6;
-const int sensorPin = 13;
+//const int sensorPin = 13;
+const int sensorPin = 7;
 
 // *************** PITCHES ***************
 int gunPitch = 1000;
@@ -27,7 +32,7 @@ void playShootSound()
   {
     analogWrite(ledPin, i);
     tone(buzzPin, i);
-    delay(1);
+    delay(10);
     Serial.println(i);
   }
   noTone(buzzPin);
@@ -59,7 +64,7 @@ void pressTrigger()
     playNoAmmoSound();
     Serial.println("no Ammo");
     // TODO DELETE THIS
-    ammo++;
+    //ammo++;
   }
   // if ammo is held
   else
@@ -68,6 +73,7 @@ void pressTrigger()
     Serial.print("pew!");
     ammo--;
   }
+  
 }
 
 void setup()
@@ -80,10 +86,33 @@ void setup()
 
   pinMode(buzzPin, OUTPUT);
   pinMode(lightPin, OUTPUT);
-  Serial.begin(9600);
+  //Serial.begin(9600);
 
   // set amount of ammo
-  ammo = 1;
+  ammo = 10;
+  
+  // Accelerometer
+  Serial.begin(115200);
+  while (!Serial)
+  {
+  };
+  LIS.begin(WIRE,0x19); //IIC init 
+  //LIS.begin(0x19);
+  //LIS.openTemp();  //If ADC3 is used, the temperature detection needs to be turned off.
+  LIS.closeTemp();//default
+  delay(100);
+    LIS.setFullScaleRange(LIS3DHTR_RANGE_2G);
+  //  LIS.setFullScaleRange(LIS3DHTR_RANGE_4G);
+  //  LIS.setFullScaleRange(LIS3DHTR_RANGE_8G);
+  //  LIS.setFullScaleRange(LIS3DHTR_RANGE_16G);
+    LIS.setOutputDataRate(LIS3DHTR_DATARATE_1HZ);
+  //  LIS.setOutputDataRate(LIS3DHTR_DATARATE_10HZ);
+  //  LIS.setOutputDataRate(LIS3DHTR_DATARATE_25HZ);
+  //  LIS.setOutputDataRate(LIS3DHTR_DATARATE_50HZ);
+  //  LIS.setOutputDataRate(LIS3DHTR_DATARATE_100HZ);
+  //  LIS.setOutputDataRate(LIS3DHTR_DATARATE_200HZ);
+  //  LIS.setOutputDataRate(LIS3DHTR_DATARATE_1_6KHZ);
+  //  LIS.setOutputDataRate(LIS3DHTR_DATARATE_5KHZ);
 }
 
 void loop()
@@ -103,5 +132,27 @@ void loop()
     // turn LED off:
     digitalWrite(ledPin, LOW);
     analogWrite(buzzPin, 0);
+  }
+  if (!LIS) // Accelerometer starts here
+  {
+    Serial.println("LIS3DHTR didn't connect.");
+    while (1)
+      ;
+    return;
+  }
+  //3 axis
+    Serial.print("x:"); Serial.print(LIS.getAccelerationX()); Serial.print("  ");
+    delay(500);
+    Serial.print("y:"); Serial.print(LIS.getAccelerationY()); Serial.print("  ");
+    delay(500);
+    Serial.print("z:"); Serial.println(LIS.getAccelerationZ());
+    delay(500);
+  //ADC
+  //    Serial.print("adc1:"); Serial.println(LIS.readbitADC1());
+  //    Serial.print("adc2:"); Serial.println(LIS.readbitADC2());
+  //    Serial.print("adc3:"); Serial.println(LIS.readbitADC3());
+
+  if (LIS3DHTR_REG_ACCEL_OUT_Z_H >= 2) {
+    reload();
   }
 }
